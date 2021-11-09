@@ -12,6 +12,7 @@
  */
 
 import * as cbor from 'cbor-web'
+import { base32Encode, base32Decode } from '@ctrl/ts-base32'
 import base45 from 'base45'
 import zlib from 'zlib'
 import { CertInfo, Trustlist } from './trustlist'
@@ -102,37 +103,42 @@ export class EuDgc {
      */
     static async parse(encodedData: string): Promise<EuDgcCert> {
         return new Promise((resolve, reject) => {
-            if (encodedData.indexOf("HC1:") == 0) {
-                encodedData = encodedData.substring(4);
+            if (encodedData.indexOf("NZCP:/1/") == 0) {
+                encodedData = encodedData.substring(8);
             }
-            const decodedData = base45.decode(encodedData);
-            zlib.inflate(decodedData, function (error: any, buf: any) {
-                //console.log(buf.toString("hex"));
-                const cborWeb = cbor
-                try {
-                    cborWeb.decodeFirst(buf, function (error: any, obj: any) {
-                        if (error) {
-                            reject(error)
-                            return
-                        }
-                        const t = obj
-                        const cwt = t.toJSON().value[2]
-                        cbor.decodeFirst(cwt, function (error: any, obj: any) {
-                            if (error) {
-                                reject(error)
-                                return
-                            }
-                            const t2 = obj
-                            const hcertRaw = t2.get(ClaimKeyHcert)
-                            const eudgc = hcertRaw.get(ClaimKeyEuDgcV1)
-                            console.log(JSON.stringify(eudgc, null, 4))
-                            resolve(eudgc)
-                        });
-                    });
-                } catch (error) {
-                    reject(error)
-                }
-            });  
+            while ((encodedData.length % 8) !== 0) {
+                encodedData += '='
+            }
+            const decodedData = base32Decode(encodedData)
+//             resolve(cwt.decode(decodedData))
+            const cborWeb = cbor
+            try {
+                cborWeb.decodeAllSync(decodedData, function (error: any, obj: any) {
+                    if (error) {
+                        reject(error)
+                        return
+                    }
+                    const t = obj
+                    const cwt = t.toJSON().value[2]
+                    resolve(cwt)
+//                     cbor.decodeFirst(cwt, function (error: any, obj: any) {
+//                         if (error) {
+//                             reject(error)
+//                             return
+//                         }
+//                         resolve(obj)
+//                         const t2 = obj
+//                         const cwt2 = t2.toJSON()
+//                         resolve(cwt2)
+//                         const hcertRaw = t2.get(ClaimKeyHcert)
+//                         const eudgc = hcertRaw.get(ClaimKeyEuDgcV1)
+//                         console.log(JSON.stringify(eudgc, null, 4))
+//                         resolve(eudgc)
+//                     });
+                });
+            } catch (error) {
+                reject(error)
+            };
         })
     }
 

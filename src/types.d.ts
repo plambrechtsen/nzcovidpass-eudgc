@@ -10,6 +10,7 @@
  * some type definitions just to make things work
  * 
  */
+declare module "@ctrl/ts-base32";
 declare module "base45";
 declare module "zlib";
 declare module "browserify-zlib";
